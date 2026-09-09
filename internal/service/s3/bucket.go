@@ -744,6 +744,7 @@ func resourceBucket() *schema.Resource {
 }
 
 func resourceBucketCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
+	
 	var diags diag.Diagnostics
 	c := meta.(*conns.AWSClient)
 	conn := c.S3Client(ctx)
@@ -812,6 +813,14 @@ func resourceBucketCreate(ctx context.Context, d *schema.ResourceData, meta any)
 	} else {
 		input.CreateBucketConfiguration.Tags = getTagsIn(ctx)
 	}
+	// ------------------------------------------------------------------
+    //  CLOUDFERRO PATCH
+    // ------------------------------------------------------------------
+	input.ACL = ""
+	input.CreateBucketConfiguration = nil
+	input.ObjectLockEnabledForBucket = nil
+	tagOnCreate = false
+    // ------------------------------------------------------------------
 
 	_, err := tfresource.RetryWhenAWSErrCodeEquals(ctx, d.Timeout(schema.TimeoutCreate), func(ctx context.Context) (any, error) {
 		return conn.CreateBucket(ctx, input)
