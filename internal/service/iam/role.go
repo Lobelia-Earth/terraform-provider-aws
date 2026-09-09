@@ -512,9 +512,9 @@ func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta any) d
 }
 
 func deleteRole(ctx context.Context, conn *iam.Client, roleName string, forceDetach, hasInline, hasManaged bool) error {
-	if err := deleteRoleInstanceProfiles(ctx, conn, roleName); err != nil {
-		return err
-	}
+	// if err := deleteRoleInstanceProfiles(ctx, conn, roleName); err != nil {
+	// 	return err
+	// }
 
 	if forceDetach || hasManaged {
 		policyARNs, err := findRoleAttachedPolicies(ctx, conn, roleName)
