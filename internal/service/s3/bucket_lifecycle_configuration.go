@@ -433,7 +433,10 @@ func (r *bucketLifecycleConfigurationResource) Create(ctx context.Context, reque
 		return
 	}
 
-	response.Diagnostics.Append(fwflex.Flatten(ctx, output, &data)...)
+	flattenBucketLifecycleConfigurationResource(ctx, output, &data, &response.Diagnostics)
+	if response.Diagnostics.HasError() {
+		return
+	}
 
 	data.ID = types.StringValue(createResourceID(bucket, expectedBucketOwner))
 	data.ExpectedBucketOwner = types.StringValue(expectedBucketOwner)
@@ -546,7 +549,10 @@ func (r *bucketLifecycleConfigurationResource) Update(ctx context.Context, reque
 		return
 	}
 
-	response.Diagnostics.Append(fwflex.Flatten(ctx, output, &new)...)
+	flattenBucketLifecycleConfigurationResource(ctx, output, &new, &response.Diagnostics)
+	if response.Diagnostics.HasError() {
+		return
+	}
 
 	new.ID = types.StringValue(createResourceID(bucket, expectedBucketOwner))
 	new.ExpectedBucketOwner = types.StringValue(expectedBucketOwner)
@@ -614,7 +620,17 @@ func (r *bucketLifecycleConfigurationResource) ImportState(ctx context.Context, 
 }
 
 func flattenBucketLifecycleConfigurationResource(ctx context.Context, bucket *s3.GetBucketLifecycleConfigurationOutput, data *bucketLifecycleConfigurationResourceModel, diags *diag.Diagnostics) {
+	transitionDefaultMinimumObjectSize := data.TransitionDefaultMinimumObjectSize
+
 	diags.Append(fwflex.Flatten(ctx, bucket, data)...)
+	if diags.HasError() {
+		return
+	}
+
+	// Some S3-compatible implementations omit TransitionDefaultMinimumObjectSize from the response.
+	if bucket.TransitionDefaultMinimumObjectSize == "" {
+		data.TransitionDefaultMinimumObjectSize = transitionDefaultMinimumObjectSize
+	}
 }
 
 func (r *bucketLifecycleConfigurationResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
@@ -656,7 +672,7 @@ func findBucketLifecycleConfiguration(ctx context.Context, conn *s3.Client, buck
 }
 
 func lifecycleConfigEqual(transitionMinSize1 awstypes.TransitionDefaultMinimumObjectSize, rules1 []awstypes.LifecycleRule, transitionMinSize2 awstypes.TransitionDefaultMinimumObjectSize, rules2 []awstypes.LifecycleRule) bool {
-	if transitionMinSize1 != transitionMinSize2 {
+	if transitionMinSize1 != "" && transitionMinSize2 != "" && transitionMinSize1 != transitionMinSize2 {
 		return false
 	}
 
